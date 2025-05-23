@@ -3,6 +3,19 @@ from flask_socketio import SocketIO, emit, join_room
 import redis
 import json
 import time
+import os
+import urllib.parse
+
+redis_url = os.environ.get("REDIS_URL")
+parsed_url = urllib.parse.urlparse(redis_url)
+
+r = redis.Redis(
+    host=parsed_url.hostname,
+    port=parsed_url.port,
+    password=parsed_url.password,
+    ssl=True,
+    decode_responses=True
+)
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
