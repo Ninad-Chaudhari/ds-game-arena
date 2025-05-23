@@ -19,7 +19,7 @@ r = redis.Redis(
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
-r = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+
 
 QUESTIONS = [
     {"id": 1, "question": "The sky is blue.", "answer": "True"},
