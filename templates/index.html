@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>DS GAME ARENA</title>
+  <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #fafafa;
+      padding: 20px;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 15px;
+      font-size: 1em;
+      cursor: pointer;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 5px;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    #questionContainer {
+      margin-top: 20px;
+    }
+    #questionContainer div {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 10px;
+      background: #f1f1f1;
+    }
+    #progress {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Game Lobby</h1>
+  <input id="username" placeholder="Enter your name" />
+  <button onclick="joinQueue()">Join Queue</button>
+
+  <h3>Players in Lobby:</h3>
+  <ul id="queue"></ul>
+
+  <div id="game" style="display:none;">
+    <h3 id="opponentInfo"></h3>
+    <div id="questionContainer"></div>
+    <div id="progress"></div>
+  </div>
+
+  <script>
+    const socket = io();
+    let currentRoom = '';
+    let username = '';
+    let questions = [];
+    let currentQuestionIndex = 0;
+
+    function joinQueue() {
+      username = document.getElementById('username').value;
+      if (username.trim()) {
+        socket.emit('join_queue', { username });
+      }
+    }
+
+    socket.on('update_queue', function(queue) {
+      const list = document.getElementById('queue');
+      list.innerHTML = "";
+      queue.forEach(player => {
+        const li = document.createElement('li');
+        li.innerText = player;
+        list.appendChild(li);
+      });
+    });
+
+    socket.on('match_found', function(data) {
+      currentRoom = data.room;
+      document.getElementById("game").style.display = "block";
+      document.getElementById("opponentInfo").innerText = "Opponent: " + data.opponent;
+      socket.emit('join_room', { username, room: currentRoom });
+      questions = data.questions;
+      currentQuestionIndex = 0;
+      showNextQuestion();
+    });
+
+    function showNextQuestion() {
+      if (currentQuestionIndex >= questions.length) return;
+
+      const q = questions[currentQuestionIndex];
+      const container = document.getElementById("questionContainer");
+      container.innerHTML = `
+        <h4>Question ${currentQuestionIndex + 1} of ${questions.length}</h4>
+        <div>
+          <p style="font-size: 1.2em;">${q.question}</p>
+          <button onclick="submitAnswer(${q.id}, 'True')">True</button>
+          <button onclick="submitAnswer(${q.id}, 'False')">False</button>
+        </div>
+      `;
+    }
+
+    function submitAnswer(qid, answer) {
+      socket.emit('submit_answer', {
+        room: currentRoom,
+        username: username,
+        qid: qid,
+        answer: answer
+      });
+
+      const container = document.getElementById("questionContainer");
+      container.innerHTML += `<p style="margin-top: 10px;">✅ You answered: ${answer}</p>`;
+      
+      setTimeout(() => {
+        currentQuestionIndex += 1;
+        showNextQuestion();
+      }, 1000);
+    }
+
+    socket.on('progress_update', function(data) {
+      const div = document.getElementById("progress");
+      div.innerHTML = "<h4>Live Progress</h4>";
+      for (const [player, count] of Object.entries(data.progress)) {
+        div.innerHTML += `<p>${player}: ${count}/5 answered</p>`;
+      }
+    });
+
+    socket.on('game_over', function(data) {
+      const scoreText = Object.entries(data.scores)
+        .map(([player, correct]) => `${player}: ${correct}/5 correct`).join("\n");
+
+      alert(`🏁 Game Over!\n\n${scoreText}\n\n🎉 Winner: ${data.winner}`);
+
+      document.getElementById("questionContainer").innerHTML = "";
+      document.getElementById("progress").innerHTML = "";
+      document.getElementById("game").style.display = "none";
+    });
+  </script>
+</body>
+</html>

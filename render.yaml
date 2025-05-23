@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: ds-game-arena
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --worker-class eventlet -w 1 -b 0.0.0.0:$PORT
+    envVars:
+      - key: REDIS_URL
+        value: redis://red-cached.your-instance-name.redis.render.com:6379
