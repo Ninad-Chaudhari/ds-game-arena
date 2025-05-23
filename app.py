@@ -6,16 +6,11 @@ import time
 import os
 import urllib.parse
 
-redis_url = os.environ.get("REDIS_URL")
-parsed_url = urllib.parse.urlparse(redis_url)
+# redis_url = os.environ.get("REDIS_URL")
+# parsed_url = urllib.parse.urlparse(redis_url)
 
-r = redis.Redis(
-    host=parsed_url.hostname,
-    port=parsed_url.port,
-    password=parsed_url.password,
-    ssl=True,
-    decode_responses=True
-)
+redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+r = redis.from_url(redis_url, decode_responses=True)
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
