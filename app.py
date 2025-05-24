@@ -34,13 +34,19 @@ def handle_join(data):
     sid = request.sid
 
     current_queue = r.lrange("queue", 0, -1)
-    if username not in [json.loads(p)['username'] for p in current_queue]:
+    usernames = [json.loads(p)['username'] for p in current_queue]
+
+    if username not in usernames:
         r.rpush("queue", json.dumps({"username": username, "sid": sid}))
         print(f"{username} added to queue.")
 
-    queue_list = [json.loads(p)['username'] for p in r.lrange("queue", 0, -1)]
-    socketio.emit('update_queue', queue_list)
+    # Emit full queue ONLY to the newly joined user
+    socketio.emit('update_queue', [json.loads(p)['username'] for p in r.lrange("queue", 0, -1)], to=sid)
 
+    # Broadcast updated queue to everyone else
+    socketio.emit('update_queue', [json.loads(p)['username'] for p in r.lrange("queue", 0, -1)])
+
+    # Matchmaking logic
     if r.llen("queue") >= 2:
         p1 = json.loads(r.lpop("queue"))
         p2 = json.loads(r.lpop("queue"))
@@ -59,8 +65,10 @@ def handle_join(data):
         socketio.emit('match_found', {'room': room_id, 'opponent': p2['username'], 'questions': QUESTIONS}, to=p1['sid'])
         socketio.emit('match_found', {'room': room_id, 'opponent': p1['username'], 'questions': QUESTIONS}, to=p2['sid'])
 
-        queue_list = [json.loads(p)['username'] for p in r.lrange("queue", 0, -1)]
-        socketio.emit('update_queue', queue_list)
+        # Update lobby queue again
+        updated_queue = [json.loads(p)['username'] for p in r.lrange("queue", 0, -1)]
+        socketio.emit('update_queue', updated_queue)
+
 
 @socketio.on('submit_answer')
 def submit_answer(data):
