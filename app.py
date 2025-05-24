@@ -10,7 +10,7 @@ import urllib.parse
 # parsed_url = urllib.parse.urlparse(redis_url)
 
 redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
-r = redis.from_url(redis_url, decode_responses=True)
+r = redis.from_url(redis_url)
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
