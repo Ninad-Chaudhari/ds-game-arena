@@ -4,3 +4,4 @@ python-socketio==5.8.0
 eventlet==0.33.3
 redis==5.0.1
 gunicorn
+setuptools
